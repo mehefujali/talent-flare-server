@@ -31,7 +31,12 @@ async function run() {
       
 
       app.get('/jobs', async (req,res) =>{
-            const jobs = await jobsCollection.find().toArray()
+            const category = req.query.category
+            let query = {} 
+            if (category) {
+                  query = {category : category}
+            }
+            const jobs = await jobsCollection.find(query).toArray()
             res.send(jobs)
       })
       app.get('/categories', async (req,res) =>{
@@ -44,6 +49,7 @@ async function run() {
             const result = await jobsCollection.findOne(qur)
             res.send(result)
       })
+     
     
    
     console.log("SUCCESSFULLY CONNECTED TO MONGODB");
