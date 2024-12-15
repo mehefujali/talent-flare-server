@@ -29,11 +29,18 @@ async function run() {
             const jobsCollection = client.db('TalentFlare').collection("jobs")
             const categoryCollection = client.db('TalentFlare').collection("category")
             const userCollection = client.db('TalentFlare').collection("users")
+            const jobApplicationCollection = client.db('TalentFlare').collection("job-application")
 
             let jobs;
 
+            app.get('/alljobs', async (req, res) => {
+                  const result = await jobsCollection.find().toArray()
+                  res.send(result)
+            })
             app.get('/jobs', async (req, res) => {
                   const category = req.query.category
+                  
+                  
                   let query = {}
                   if (category) {
                         if (category == "All category") {
@@ -41,7 +48,6 @@ async function run() {
 
 
                         }
-
                         else {
                               query = { category: category }
                               jobs = await jobsCollection.find(query).toArray()
@@ -67,6 +73,12 @@ async function run() {
                   const result = await userCollection.insertOne(user)
                   res.send(result)
             })
+            app.post('/job-application' , async (req,res)=>{
+                  const jobApplication = req.body
+                  const result = await jobApplicationCollection.insertOne(jobApplication)
+                  res.send(result)
+            })
+          
 
 
             console.log("SUCCESSFULLY CONNECTED TO MONGODB");
