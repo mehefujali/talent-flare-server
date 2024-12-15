@@ -78,7 +78,12 @@ async function run() {
                   const result = await jobApplicationCollection.insertOne(jobApplication)
                   res.send(result)
             })
-          
+            app.get('/myapplication', async (req,res) =>{
+                  const email = req.query.email 
+                  const query = {applicantEmail:email}
+                  const result = await jobApplicationCollection.find(query).toArray()
+                  res.send(result)
+           })
 
 
             console.log("SUCCESSFULLY CONNECTED TO MONGODB");
