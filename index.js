@@ -39,18 +39,19 @@ async function run() {
             })
             app.get('/jobs', async (req, res) => {
                   const category = req.query.category
-                  
-                  
+                  const {limit = 9} = req.query
+
                   let query = {}
                   if (category) {
                         if (category == "All category") {
-                              jobs = await jobsCollection.find().toArray()
+                              
+                              jobs = await jobsCollection.find().limit(Number(limit)).toArray()
 
 
                         }
                         else {
                               query = { category: category }
-                              jobs = await jobsCollection.find(query).toArray()
+                              jobs = await jobsCollection.find(query).limit(Number(limit)).toArray()
                         }
 
                   }
@@ -73,17 +74,37 @@ async function run() {
                   const result = await userCollection.insertOne(user)
                   res.send(result)
             })
-            app.post('/job-application' , async (req,res)=>{
+            app.post('/job-application', async (req, res) => {
+                  let result ;
                   const jobApplication = req.body
-                  const result = await jobApplicationCollection.insertOne(jobApplication)
+                  const job_id_qur = {job_id : jobApplication?.job_id}
+                  const job = await jobApplicationCollection.findOne(job_id_qur)
+                  if(job){
+                      result = {status:'job already applyed'}
+                  }
+                  else{
+                        result = await jobApplicationCollection.insertOne(jobApplication)
+                  }
                   res.send(result)
             })
-            app.get('/myapplication', async (req,res) =>{
-                  const email = req.query.email 
-                  const query = {applicantEmail:email}
+            app.get('/myapplication', async (req, res) => {
+                  const email = req.query.email
+                  const query = { applicantEmail: email }
                   const result = await jobApplicationCollection.find(query).toArray()
+                  for (let application of result) {
+                        const query1 = { _id: new ObjectId(application.job_id) }
+                        const job = await jobsCollection.findOne(query1)
+                        if (job) {
+                              application.job_title = job.title
+                              application.company_logo = job.company_logo
+                              application.applicationDeadline = job.applicationDeadline 
+                              application.status = job.status 
+                              application.location = job.location 
+                              application.jobType = job.jobType
+                        }
+                  }
                   res.send(result)
-           })
+            })
 
 
             console.log("SUCCESSFULLY CONNECTED TO MONGODB");
