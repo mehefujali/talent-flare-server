@@ -1,13 +1,34 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken')
 const app = express()
 require('dotenv').config()
-const port = process.env.PORT || 8080
+const cookieParser = require('cookie-parser');
+const port = process.env.PORT || 5000
 //mw 
-app.use(cors())
+app.use(cors({
+      origin: ['http://localhost:5173'],
+      credentials: true
+}))
 app.use(express.json())
+app.use(cookieParser())
+const varifyToken = (req, res, next) => {
+      console.log('inside verify Token', req.cookies)
+      const token = req?.cookies?.token
+      if (!token) {
+            return res.status(401).send({ message: 'mama tumi kida tomake chinte parlam na' })
+      }
+      jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+            if (err) {
+                  return res.status(401).send({ message: 'mama tumi kida tomake chinte parlam na' })
+            }
+            req.user = decoded
+            next()
+
+      })
 
 
+}
 
 
 
@@ -34,17 +55,34 @@ async function run() {
             let jobs;
 
             app.get('/alljobs', async (req, res) => {
-                  const result = await jobsCollection.find().toArray()
+
+                  const search = req.query.search
+                  let option = {}
+                  if (search) {
+                        option = { title: { $regex: search, $options: "i" } }
+                  }
+                  const result = await jobsCollection.find(option).toArray()
                   res.send(result)
+            })
+            app.post('/jwt', async (req, res) => {
+                  const user = req.body
+                  const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1h' })
+
+                  res
+                        .cookie('token', token, {
+                              httpOnly: true,
+                              secure: false,
+                        })
+                        .send({ success: true })
             })
             app.get('/jobs', async (req, res) => {
                   const category = req.query.category
-                  const {limit = 9} = req.query
+                  const { limit = 9 } = req.query
 
                   let query = {}
                   if (category) {
                         if (category == "All category") {
-                              
+
                               jobs = await jobsCollection.find().limit(Number(limit)).toArray()
 
 
@@ -55,7 +93,9 @@ async function run() {
                         }
 
                   }
-
+                  else {
+                        jobs = await jobsCollection.find().limit(Number(limit)).toArray()
+                  }
 
                   res.send(jobs)
             })
@@ -63,7 +103,7 @@ async function run() {
                   const categories = await categoryCollection.find().toArray()
                   res.send(categories)
             })
-            app.get('/jobs/:id', async (req, res) => {
+            app.get('/jobs/:id',  async (req, res) => {
                   const id = req.params.id
                   const qur = { _id: new ObjectId(id) }
                   const result = await jobsCollection.findOne(qur)
@@ -75,20 +115,24 @@ async function run() {
                   res.send(result)
             })
             app.post('/job-application', async (req, res) => {
-                  let result ;
+                  let result;
                   const jobApplication = req.body
-                  const job_id_qur = {job_id : jobApplication?.job_id}
+                  const job_id_qur = { job_id: jobApplication?.job_id }
                   const job = await jobApplicationCollection.findOne(job_id_qur)
-                  if(job){
-                      result = {status:'job already applyed'}
+                  if (job.applicantEmail === jobApplication.applicantEmail) {
+                        result = { status: 'job already applyed' }
                   }
-                  else{
+                  else {
                         result = await jobApplicationCollection.insertOne(jobApplication)
                   }
                   res.send(result)
             })
-            app.get('/myapplication', async (req, res) => {
+            app.get('/myapplication', varifyToken, async (req, res) => {
                   const email = req.query.email
+                  if(req.user.email !== email) {
+                        return res.status(403).send({ message: 'mama ata to tumi na' })
+                  }
+                  // console.log(req.cookies)
                   const query = { applicantEmail: email }
                   const result = await jobApplicationCollection.find(query).toArray()
                   for (let application of result) {
@@ -97,9 +141,9 @@ async function run() {
                         if (job) {
                               application.job_title = job.title
                               application.company_logo = job.company_logo
-                              application.applicationDeadline = job.applicationDeadline 
-                              application.status = job.status 
-                              application.location = job.location 
+                              application.applicationDeadline = job.applicationDeadline
+                              application.status = job.status
+                              application.location = job.location
                               application.jobType = job.jobType
                         }
                   }
