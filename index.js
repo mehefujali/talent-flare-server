@@ -174,7 +174,17 @@ async function run() {
                   res.send(result)
 
             })
-            app.post('/subscription', async (req, res) => {
+            app.delete('/myjobs', varifyToken , async(req,res)=>{
+                  const  id = req.query.id
+                  const query = {_id : new ObjectId(id)}
+                  const job = await jobsCollection.findOne(query)
+                  if(job.userEmail !== req.user.email){
+                        return res.status(403).send({ message: 'forbidden' })
+                  }
+                  const result = await jobsCollection.deleteOne(query)
+                  res.send(result)
+            })
+            app.post('/subscription',  async (req, res) => {
                   const email = req.body
                  
 
