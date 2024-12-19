@@ -164,6 +164,16 @@ async function run() {
                   }
                   res.send(result)
             })
+            app.get('/myjobs' , varifyToken , async(req,res)=>{
+                  const email = req.query.email 
+                  if (req.user.email !== email) {
+                        return res.status(403).send({ message: 'forbidden' })
+                  }
+                  const query = {userEmail : email}
+                  const result = await jobsCollection.find(query).toArray()
+                  res.send(result)
+
+            })
             app.post('/subscription', async (req, res) => {
                   const email = req.body
                  
