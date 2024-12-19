@@ -7,13 +7,13 @@ const cookieParser = require('cookie-parser');
 const port = process.env.PORT || 5000
 //mw 
 app.use(cors({
-      origin: ['http://localhost:5173','https://talentflare.web.app' , 'https://talentflare.firebaseapp.com'],
+      origin: ['http://localhost:5173', 'https://talentflare.web.app', 'https://talentflare.firebaseapp.com'],
       credentials: true
 }))
 app.use(express.json())
 app.use(cookieParser())
 const varifyToken = (req, res, next) => {
-      
+
       const token = req?.cookies?.token
       if (!token) {
             return res.status(401).send({ message: 'unauthorized access' })
@@ -51,6 +51,7 @@ async function run() {
             const categoryCollection = client.db('TalentFlare').collection("category")
             const userCollection = client.db('TalentFlare').collection("users")
             const jobApplicationCollection = client.db('TalentFlare').collection("job-application")
+            const subscriptionCollection = client.db('TalentFlare').collection("subscription")
 
             let jobs;
 
@@ -72,15 +73,17 @@ async function run() {
                         .cookie('token', token, {
                               httpOnly: true,
                               secure: process.env.NODE_ENV === "production",
+                              sameSite: process.env.NODE_ENV === "production" ? "none" : "strict"
                         })
                         .send({ success: true })
             })
-            app.post('/logout',(req,res)=>{
-              res.clearCookie('token' , {
-                  httpOnly: true ,
-                  secure : process.env.NODE_ENV === "production",
-              })
-              .send({success:true})
+            app.post('/logout', (req, res) => {
+                  res.clearCookie('token', {
+                        httpOnly: true,
+                        secure: process.env.NODE_ENV === "production",
+                        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict"
+                  })
+                        .send({ success: true })
             })
             app.get('/jobs', async (req, res) => {
                   const category = req.query.category
@@ -106,8 +109,8 @@ async function run() {
 
                   res.send(jobs)
             })
-            app.post('/addjobs' , async (req,res) => {
-                  const newJob = req.body 
+            app.post('/addjobs', async (req, res) => {
+                  const newJob = req.body
                   const response = await jobsCollection.insertOne(newJob)
                   res.send(response)
             })
@@ -115,7 +118,7 @@ async function run() {
                   const categories = await categoryCollection.find().toArray()
                   res.send(categories)
             })
-            app.get('/jobs/:id',   async (req, res) => {
+            app.get('/jobs/:id', async (req, res) => {
                   const id = req.params.id
                   const qur = { _id: new ObjectId(id) }
                   const result = await jobsCollection.findOne(qur)
@@ -141,7 +144,7 @@ async function run() {
             })
             app.get('/myapplication', varifyToken, async (req, res) => {
                   const email = req.query.email
-                  if(req.user.email !== email) {
+                  if (req.user.email !== email) {
                         return res.status(403).send({ message: 'forbidden' })
                   }
                   // console.log(req.cookies)
@@ -161,7 +164,14 @@ async function run() {
                   }
                   res.send(result)
             })
+            app.post('/subscription', async (req, res) => {
+                  const email = req.body
+                 
 
+                   const result = await subscriptionCollection.insertOne(email)
+                   res.send(result)
+
+            })
 
             console.log("SUCCESSFULLY CONNECTED TO MONGODB");
       } finally {
