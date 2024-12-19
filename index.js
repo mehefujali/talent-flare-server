@@ -181,8 +181,11 @@ async function run() {
                   if(job.userEmail !== req.user.email){
                         return res.status(403).send({ message: 'forbidden' })
                   }
+                  const applicantQuery = {job_id: id}
+                  jobApplicationCollection.deleteOne(applicantQuery)
                   const result = await jobsCollection.deleteOne(query)
                   res.send(result)
+
             })
             app.post('/subscription',  async (req, res) => {
                   const email = req.body
