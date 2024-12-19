@@ -7,20 +7,20 @@ const cookieParser = require('cookie-parser');
 const port = process.env.PORT || 5000
 //mw 
 app.use(cors({
-      origin: ['http://localhost:5173'],
+      origin: ['http://localhost:5173','https://talentflare.web.app' , 'https://talentflare.firebaseapp.com'],
       credentials: true
 }))
 app.use(express.json())
 app.use(cookieParser())
 const varifyToken = (req, res, next) => {
-      console.log('inside verify Token', req.cookies)
+      
       const token = req?.cookies?.token
       if (!token) {
-            return res.status(401).send({ message: 'mama tumi kida tomake chinte parlam na' })
+            return res.status(401).send({ message: 'unauthorized access' })
       }
       jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
             if (err) {
-                  return res.status(401).send({ message: 'mama tumi kida tomake chinte parlam na' })
+                  return res.status(401).send({ message: 'unauthorized access' })
             }
             req.user = decoded
             next()
@@ -75,6 +75,13 @@ async function run() {
                         })
                         .send({ success: true })
             })
+            app.post('/logout',(req,res)=>{
+              res.clearCookie('token' , {
+                  httpOnly: true ,
+                  secure : false
+              })
+              .send({success:true})
+            })
             app.get('/jobs', async (req, res) => {
                   const category = req.query.category
                   const { limit = 9 } = req.query
@@ -99,11 +106,16 @@ async function run() {
 
                   res.send(jobs)
             })
+            app.post('/addjobs' , async (req,res) => {
+                  const newJob = req.body 
+                  const response = await jobsCollection.insertOne(newJob)
+                  res.send(response)
+            })
             app.get('/categories', async (req, res) => {
                   const categories = await categoryCollection.find().toArray()
                   res.send(categories)
             })
-            app.get('/jobs/:id',  async (req, res) => {
+            app.get('/jobs/:id',   async (req, res) => {
                   const id = req.params.id
                   const qur = { _id: new ObjectId(id) }
                   const result = await jobsCollection.findOne(qur)
@@ -119,7 +131,7 @@ async function run() {
                   const jobApplication = req.body
                   const job_id_qur = { job_id: jobApplication?.job_id }
                   const job = await jobApplicationCollection.findOne(job_id_qur)
-                  if (job.applicantEmail === jobApplication.applicantEmail) {
+                  if (job?.applicantEmail === jobApplication.applicantEmail) {
                         result = { status: 'job already applyed' }
                   }
                   else {
@@ -130,7 +142,7 @@ async function run() {
             app.get('/myapplication', varifyToken, async (req, res) => {
                   const email = req.query.email
                   if(req.user.email !== email) {
-                        return res.status(403).send({ message: 'mama ata to tumi na' })
+                        return res.status(403).send({ message: 'forbidden' })
                   }
                   // console.log(req.cookies)
                   const query = { applicantEmail: email }
