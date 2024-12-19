@@ -71,14 +71,14 @@ async function run() {
                   res
                         .cookie('token', token, {
                               httpOnly: true,
-                              secure: false,
+                              secure: process.env.NODE_ENV === "production",
                         })
                         .send({ success: true })
             })
             app.post('/logout',(req,res)=>{
               res.clearCookie('token' , {
                   httpOnly: true ,
-                  secure : false
+                  secure : process.env.NODE_ENV === "production",
               })
               .send({success:true})
             })
