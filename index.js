@@ -164,35 +164,45 @@ async function run() {
                   }
                   res.send(result)
             })
-            app.get('/myjobs' , varifyToken , async(req,res)=>{
-                  const email = req.query.email 
+            app.get('/myjobs', varifyToken, async (req, res) => {
+                  const email = req.query.email
                   if (req.user.email !== email) {
                         return res.status(403).send({ message: 'forbidden' })
                   }
-                  const query = {userEmail : email}
+                  const query = { userEmail: email }
                   const result = await jobsCollection.find(query).toArray()
                   res.send(result)
 
             })
-            app.delete('/myjobs', varifyToken , async(req,res)=>{
-                  const  id = req.query.id
-                  const query = {_id : new ObjectId(id)}
+            app.delete('/myjobs', varifyToken, async (req, res) => {
+                  const id = req.query.id
+                  const query = { _id: new ObjectId(id) }
                   const job = await jobsCollection.findOne(query)
-                  if(job.userEmail !== req.user.email){
+                  if (job.userEmail !== req.user.email) {
                         return res.status(403).send({ message: 'forbidden' })
                   }
-                  const applicantQuery = {job_id: id}
+                  const applicantQuery = { job_id: id }
                   jobApplicationCollection.deleteOne(applicantQuery)
                   const result = await jobsCollection.deleteOne(query)
                   res.send(result)
 
             })
-            app.post('/subscription',  async (req, res) => {
+            app.put('/myjob/:id', async (req, res) => {
+                  const id = req.params.id
+                  const filter = { _id: new ObjectId(id) }
+                  const options = { upsert: true };
+                  const updatedDoc = {
+                        $set: req.body
+                  }
+                  const result = await jobsCollection.updateOne(filter, updatedDoc, options)
+                  res.send(result);
+            })
+            app.post('/subscription', async (req, res) => {
                   const email = req.body
-                 
 
-                   const result = await subscriptionCollection.insertOne(email)
-                   res.send(result)
+
+                  const result = await subscriptionCollection.insertOne(email)
+                  res.send(result)
 
             })
 
