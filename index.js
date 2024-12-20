@@ -187,8 +187,14 @@ async function run() {
                   res.send(result)
 
             })
-            app.put('/myjob/:id', async (req, res) => {
+            app.put('/myjob/:id', varifyToken, async (req, res) => {
+
                   const id = req.params.id
+                  const query = { _id: new ObjectId(id) }
+                  const job = await jobsCollection.findOne(query)
+                  if (job.userEmail !== req.user.email) {
+                        return res.status(403).send({ message: 'forbidden' })
+                  }
                   const filter = { _id: new ObjectId(id) }
                   const options = { upsert: true };
                   const updatedDoc = {
